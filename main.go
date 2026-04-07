@@ -21,8 +21,15 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 }
 
 func (cfg *apiConfig) MetricsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, err := fmt.Fprintf(w, "Hits: %d", cfg.fileserverHits.Load())
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	html := fmt.Sprintf(
+		`<html>
+  <body>
+    <h1>Welcome, Chirpy Admin</h1>
+    <p>Chirpy has been visited %d times!</p>
+  </body>
+</html>`, cfg.fileserverHits.Load())
+	_, err := fmt.Fprintf(w, "%s", html)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -54,11 +61,11 @@ func main() {
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(FILEROOT)))))
 
-	mux.HandleFunc("/metrics", apiCfg.MetricsHandler)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.MetricsHandler)
 
-	mux.HandleFunc("/reset", apiCfg.MetricsResetHandler)
+	mux.HandleFunc("POST /admin/reset", apiCfg.MetricsResetHandler)
 
-	mux.HandleFunc("/healthz", healthHander)
+	mux.HandleFunc("GET /api/healthz", healthHander)
 
 	srv := &http.Server{
 		Addr:    PORT,
