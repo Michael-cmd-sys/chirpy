@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/Michael-cmd-sys/chirpy/internal/lib"
@@ -51,6 +52,8 @@ func HealthHander(w http.ResponseWriter, r *http.Request) {
 }
 
 func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
+	foundProfanity := false
+	profaneWords := []string{"kerfuffle", "sharbert", "fornax"}
 	type errorResponse struct {
 		Error string `json:"error"`
 	}
@@ -79,6 +82,17 @@ func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-  lib.SendJsonResponse(w, successResponse{true}, http.StatusOK)
-}
+	for _, word := range profaneWords {
+		if strings.Contains(strings.ToLower(payload.Body), word) {
+			foundProfanity = true
+			strings.ReplaceAll(strings.ToLower(payload.Body), word, "****")
+		}
+	}
 
+	if foundProfanity {
+		lib.SendJsonResponse(w, map[string]string{"cleaned_body": payload.Body}, http.StatusOK)
+		return
+	}
+
+	lib.SendJsonResponse(w, successResponse{true}, http.StatusOK)
+}
