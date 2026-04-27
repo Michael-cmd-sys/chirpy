@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"unicode/utf8"
@@ -52,47 +51,42 @@ func HealthHander(w http.ResponseWriter, r *http.Request) {
 }
 
 func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
+	var parsedString string
 	foundProfanity := false
 	profaneWords := []string{"kerfuffle", "sharbert", "fornax"}
-	type errorResponse struct {
-		Error string `json:"error"`
-	}
 
 	type chirp struct {
 		Body string `json:"body"`
 	}
 
-	type successResponse struct {
-		Valid bool `json:"valid"`
-	}
-
 	payload := chirp{}
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
-		log.Println(err)
-		lib.SendJsonResponse(w, errorResponse{"Something went wrong"}, http.StatusBadRequest)
+		lib.SendJsonResponse(w, map[string]string{"error": "Something went wrong"}, http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("Received chirp: %s", payload.Body)
+	if len(payload.Body) == 0 {
+		lib.SendJsonResponse(w, map[string]bool{"valid": false}, http.StatusBadRequest)
+		return
+	}
 
 	if utf8.RuneCountInString(payload.Body) > 140 {
-		log.Println("Error occurred, chirp too long")
-		lib.SendJsonResponse(w, errorResponse{"Chirp is too long"}, http.StatusBadRequest)
+		lib.SendJsonResponse(w, map[string]string{"error": "Chirp is too long"}, http.StatusBadRequest)
 		return
 	}
 
 	for _, word := range profaneWords {
 		if strings.Contains(strings.ToLower(payload.Body), word) {
 			foundProfanity = true
-			strings.ReplaceAll(strings.ToLower(payload.Body), word, "****")
+			parsedString = strings.ReplaceAll(strings.ToLower(payload.Body), word, "****")
 		}
 	}
 
 	if foundProfanity {
-		lib.SendJsonResponse(w, map[string]string{"cleaned_body": payload.Body}, http.StatusOK)
+		lib.SendJsonResponse(w, map[string]string{"cleaned_body": parsedString}, http.StatusOK)
 		return
 	}
 
-	lib.SendJsonResponse(w, successResponse{true}, http.StatusOK)
+	lib.SendJsonResponse(w, map[string]bool{"valid": true}, http.StatusOK)
 }
