@@ -1,0 +1,18 @@
+services:
+  db:
+    # Use the lightweight Alpine version (slim alternative)
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: chirpy # The database username
+      POSTGRES_PASSWORD: password # The database password
+      POSTGRES_DB: chirpy # The default database name
+    ports:
+      - "5440:5432" # Maps host port 5440 to container port 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    shm_size: 128mb # Recommended shared memory for Postgres
+
+volumes:
+  postgres_data: # Persists your data even if the container is deleted
+
