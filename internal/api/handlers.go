@@ -38,9 +38,18 @@ func (cfg *ApiConfig) MetricsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (cfg *ApiConfig) MetricsResetHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	cfg.FileserverHits.Store(0)
+func (cfg *ApiConfig) ResetHandler(w http.ResponseWriter, r *http.Request) {
+	if cfg.Platform != "dev" {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	err := cfg.DB.DeleteAllUsers(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func HealthHander(w http.ResponseWriter, r *http.Request) {
@@ -89,4 +98,24 @@ func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lib.SendJsonResponse(w, map[string]bool{"valid": true}, http.StatusOK)
+}
+
+func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
+	type payload struct {
+		Email string `json:"email"`
+	}
+
+	params := payload{}
+	json.NewDecoder(r.Body).Decode(&params)
+
+	user, err := cfg.DB.CreateUser(r.Context(), params.Email)
+	if err != nil {
+		lib.SendJsonResponse(w, map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	lib.SendJsonResponse(
+		w,
+		user,
+		http.StatusCreated)
 }

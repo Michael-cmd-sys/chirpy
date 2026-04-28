@@ -30,6 +30,7 @@ func main() {
 	apiCfg := api.ApiConfig{
 		FileserverHits: atomic.Int32{},
 		DB:             dbQueries,
+		Platform:       os.Getenv("PLATFORM"),
 	}
 
 	// Create a server instance handler
@@ -39,11 +40,12 @@ func main() {
 
 	mux.HandleFunc("GET /admin/metrics", apiCfg.MetricsHandler)
 
-	mux.HandleFunc("POST /admin/reset", apiCfg.MetricsResetHandler)
+	mux.HandleFunc("POST /admin/reset", apiCfg.ResetHandler)
 
 	mux.HandleFunc("GET /api/healthz", api.HealthHander)
 
 	mux.HandleFunc("POST /api/validate_chirp", api.ValidateChirpHandler)
+	mux.HandleFunc("POST /api/users", apiCfg.CreateUserHandler)
 
 	srv := &http.Server{
 		Addr:    PORT,
