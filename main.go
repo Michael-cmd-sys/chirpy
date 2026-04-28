@@ -1,20 +1,35 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"sync/atomic"
 
 	"github.com/Michael-cmd-sys/chirpy/internal/api"
+	"github.com/Michael-cmd-sys/chirpy/internal/database"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 func main() {
+	godotenv.Load()
 	const FILEROOT = "./static"
 	const PORT = ":8080"
+	dbURL := os.Getenv("DB_URL")
+
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dbQueries := database.New(db)
 
 	// Server config setup
 	apiCfg := api.ApiConfig{
 		FileserverHits: atomic.Int32{},
+		DB:             dbQueries,
 	}
 
 	// Create a server instance handler
